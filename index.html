@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Flappy Bird using JS | by learnWD</title>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style type="text/css">
+      .sart-btn{
+        position: absolute;
+        left: 0;
+        right: 0;
+        width: 150px;
+        height: 50px;
+        background-color: #ef5ef5;
+        color: #fff;
+        top: 0;
+        bottom: 0;
+        margin: auto;
+        text-align: center;
+        line-height: 50px;
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+   <canvas id="canvas" style="display: none;" width="1300" height="580"></canvas>
+    <div id="control" style="text-align:center;width:320px;display: none;">
+      <button id="moveup">UP</button><br><br>
+      <button id="movedown">DOWN</button>
+
+    </div>
+    <div class="sart-btn">Start</div>
+    <script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+  crossorigin="anonymous"></script>
+   <script type="text/javascript">
+   	var cvs = document.getElementById("canvas");
+	var ctx = cvs.getContext("2d");
+	var bird = new Image();
+	var bg = new Image();
+	var fg = new Image();
+	var pipeNorth = new Image();
+	var pipeSouth = new Image();
+	var bird = new Image();
+	bird.src = "/images/bird.png";
+	bg.src = "/images/bg1.png";
+	fg.src = "/images/fg1.png";
+	pipeNorth.src = "/images/pipeNorth.png";
+	pipeSouth.src = "/images/pipeSouth.png";
+
+	var gap = 85;
+	var constant;
+	var bX = 900;
+	var bY = 150;
+	var gravity = 0.7;
+	var score = 0;
+	var fly = new Audio();
+	var scor = new Audio();
+
+	fly.src = "/sounds/fly.mp3";
+	scor.src = "/sounds/score.mp3";
+	//document.addEventListener("keydown",moveUp);
+
+	function moveup(e){
+	    bY -= 25;	    
+	    fly.play();
+	}
+	function movedown(e){
+	    bY += 25;	    
+	    fly.play();
+	}
+	// pipe coordinates
+
+	var pipe = [];
+
+	pipe[0] = {
+	    x : cvs.width,
+	    y : 0
+	};
+
+	// draw images
+var oneTime=0;
+	function draw(){    
+	    ctx.drawImage(bg,0,0);   
+	    
+	    for(var i = 0; i < pipe.length; i++){        
+	        constant = pipeNorth.height+gap;
+	        ctx.drawImage(pipeNorth,pipe[i].x,pipe[i].y);
+	        ctx.drawImage(pipeSouth,pipe[i].x,pipe[i].y+constant);
+	             
+	        pipe[i].x--;
+	        
+	        if( pipe[i].x == 1050 ){
+	            pipe.push({
+	                x : cvs.width,
+	                y : Math.floor(Math.random()*pipeNorth.height)-pipeNorth.height
+	            }); 
+	        }
+
+	        // detect collision
+	        
+	        if( bX + bird.width >= pipe[i].x && bX <= pipe[i].x + pipeNorth.width && (bY <= pipe[i].y + pipeNorth.height || bY+bird.height >= pipe[i].y+constant) || bY + bird.height >=  cvs.height - fg.height){
+            if(oneTime==0){
+
+	            socket.emit("image","endGame");
+              	location.reload();// reload the page
+                oneTime++;
+            }
+	        }
+	        
+	        if(pipe[i].x == 900){
+	            score++;
+	            scor.play();
+	        }
+	        
+	        
+	    }
+
+	    ctx.drawImage(fg,0,cvs.height - fg.height);
+	    
+	    ctx.drawImage(bird,bX,bY);
+	    
+	   bY += gravity;
+	    
+	    ctx.fillStyle = "#000";
+	    ctx.font = "20px Verdana";
+	    ctx.fillText("Score : "+score,10,cvs.height-20);
+	    
+	    requestAnimationFrame(draw);
+	    
+	}
+	var socket = io();
+      socket.on('connect', function() {
+        console.log('check 2', socket.connected);
+      });
+      // Get DOM elements
+      var input = document.getElementById("input");
+      var output = document.getElementById("output");
+
+      // Join a channel
+      var room = "test";
+      socket.emit("join", room);
+
+      // Listen to file input events
+      /*document.getElementById("input").addEventListener("change", function (event) {
+
+        // Prepeare file reader
+        var file = event.target.files[0];
+        var fileReader = new FileReader();
+
+        fileReader.onloadend = function (event) {
+          // Send an image event to the socket
+          var image = event.target.result
+          //output.src = image;
+          socket.emit("image", image);
+        };
+
+        // Read file
+        fileReader.readAsDataURL(file);
+      })*/
+      var xyz=1;
+      socket.on("image", function (image) {
+        console.log(image);
+        if(image=='start'){
+            //$('#canvascontainer').show();
+            
+            $('#canvas').show()
+            draw();
+            $('.sart-btn').hide();
+        }
+        else if(image =='moveup'){
+          moveup();
+        }
+        else if(image =='moveleft'){
+          moveleft();
+        }
+        else if(image =='moveright'){
+          moveright();
+        }
+        else if(image =='movedown'){
+          movedown();
+        }
+        else if(image=='endGame'){
+          endGame();
+        }
+        
+       
+        //startGame();
+      });
+      socket.on("message", function (image) {
+        $('.sart-btn').hide();
+        alert("User exided");
+
+      });
+      
+      $('.sart-btn').click(function(){       
+        socket.emit("image", 'start');
+        $('#control').show();
+        $(this).hide();
+      });
+      $('#moveup').click(function(){
+        socket.emit("image","moveup");
+      })
+      $('#moveleft').click(function(){
+        socket.emit("image","moveleft");
+      })
+      $('#moveright').click(function(){
+        socket.emit("image","moveright");
+      })
+      $('#movedown').click(function(){
+        socket.emit("image","movedown");
+      });
+      function endGame(){
+        $('#canvascontainer').find('canvas').remove();
+        //$('.sart-btn').show();
+        $('#control').hide();
+        alert('end');
+      }
+	
+</script>
+  </body>
+</html>
